@@ -5,10 +5,31 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-enum Platform { tiktok instagram facebook youtube }
-enum AccountStatus { connected needs_reconnection disconnected }
-enum PostStatus { draft scheduled publishing published partial failed }
-enum TargetStatus { pending uploading published failed }
+enum Platform {
+  tiktok
+  instagram
+  facebook
+  youtube
+}
+enum AccountStatus {
+  connected
+  needs_reconnection
+  disconnected
+}
+enum PostStatus {
+  draft
+  scheduled
+  publishing
+  published
+  partial
+  failed
+}
+enum TargetStatus {
+  pending
+  uploading
+  published
+  failed
+}
 
 model User {
   id           String   @id @default(uuid())
