@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Platform { tiktok instagram facebook youtube }
+enum AccountStatus { connected needs_reconnection disconnected }
+enum PostStatus { draft scheduled publishing published partial failed }
+enum TargetStatus { pending uploading published failed }
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  timezone     String   @default("UTC")
+  createdAt    DateTime @default(now())
+  accounts     SocialAccount[]
+  posts        Post[]
+  activity     ActivityLog[]
+}
+model SocialAccount {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform    Platform
+  externalId  String
+  username    String
+  avatarUrl   String?
+  status      AccountStatus @default(connected)
+  accessTokenEnc  String?
+  refreshTokenEnc String?
+  tokenExpiresAt  DateTime?
+  followers   Int      @default(0)
+  postsCount  Int      @default(0)
+  lastSyncedAt DateTime?
+  targets     PostTarget[]
+  @@unique([platform, externalId])
+}
+model Post {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caption     String   @default("")
+  mediaUrls   String[]
+  status      PostStatus @default(draft)
+  scheduledAt DateTime?
+  timezone    String?
+  createdAt   DateTime @default(now())
+  targets     PostTarget[]
+  @@index([userId, status, scheduledAt])
+}
+model PostTarget {
+  id         String   @id @default(uuid())
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  status     TargetStatus @default(pending)
+  settings   Json     @default("{}")
+  externalPostId String?
+  publishedAt DateTime?
+  error      String?
+  attempts   PublishAttempt[]
+  @@unique([postId, accountId])
+}
+model PublishAttempt {
+  id        String   @id @default(uuid())
+  targetId  String
+  target    PostTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  attemptNo Int
+  status    TargetStatus
+  error     String?
+  createdAt DateTime @default(now())
+}
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  status    String   @default("info")
+  message   String
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
